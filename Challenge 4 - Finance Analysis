@@ -1,0 +1,120 @@
+                                           Challenge 4 - Finance Analysis
+You can access the challenge link from here :- https://www.steeldata.org.uk/sql4.html(schema is provided)
+
+Intro
+You are a Finance Analyst working for 'The Big Bank'
+You have been tasked with finding out about your customers and their banking behaviour. 
+Examine the accounts they hold and the type of transactions they make to develop greater insight into your customers.
+
+QUESTIONS
+
+#1. What are the names of all the customers who liVE in New York?
+
+SELECT CONCAT(FirstName,' ',LastName) as name,CustomerID
+FROM customers 
+WHERE city = 'New York';
+
+#2. What is the total number of accounts in the Accounts table?
+
+SELECT COUNT(AccountID) as total_accounts
+FROM Accounts;
+
+#3. What is the total balance of all checking accounts?
+
+SELECT AccountType, SUM(Balance) as total_balance
+FROM Accounts
+WHERE AccountType = 'Checking';
+
+#4. What is the total balance of all accounts associated with customers who live in Los Angeles?
+
+SELECT c.City, SUM(a.Balance) as total_balance
+FROM Customers c  JOIN Accounts a USING(CustomerID)
+WHERE City = 'Los Angeles'
+GROUP BY 1;
+
+#5. Which branch has the highest average account balance?
+
+SELECT
+BranchName,
+Avg_Balance
+FROM(
+	SELECT
+	B.BranchName,
+	AVG(A.Balance) as Avg_Balance,
+    DENSE_RANK() OVER (ORDER BY SUM(A.Balance) DESC) AS Balance_Dense_Rank
+	FROM Branches B
+	JOIN Accounts A USING(BranchID)
+	GROUP BY 1
+) Balance_Rank
+	WHERE Balance_Dense_Rank = 1;
+
+#6. Which customer has the highest current balance in their accounts?
+
+SELECT CONCAT(c.FirstName," ",c.LastName) as name,Max(a.Balance) as highest_balance
+FROM customers c JOIN Accounts a USING(CustomerID)
+GROUP BY 1
+ORDER BY 2 DESC 
+LIMIT 1;
+
+#7. Which customer has made the most transactions in the Transactions table?
+
+SELECT
+ FullName,
+ Total_Transactions
+FROM (
+  SELECT
+    CONCAT(C.Firstname, " ", C.Lastname) AS FullName,
+    COUNT(T.TransactionID) AS Total_Transactions,
+    DENSE_RANK() OVER (ORDER BY COUNT(T.TransactionID) DESC) AS Transaction_Dense_Rank
+  FROM Customers C
+  JOIN Accounts A USING(CustomerID)
+  JOIN Transactions T USING(AccountID)
+  GROUP BY 1
+) Ranked_Customers
+WHERE Transaction_Dense_Rank = 1;
+
+#8.Which branch has the highest total balance across all of its accounts?
+
+SELECT
+BranchName,
+Total_Balance
+FROM (
+  SELECT
+    B.BranchName,
+    SUM(A.Balance) AS Total_Balance,
+    DENSE_RANK() OVER (ORDER BY SUM(A.Balance) DESC) AS Balance_Rank
+  FROM Branches B
+  JOIN Accounts A USING(BranchID)
+  GROUP BY B.BranchName
+) Ranked_Balance
+WHERE Balance_Rank = 1;
+
+#9. Which customer has the highest total balance across all of their accounts,
+# including savings and checking accounts?
+
+select Full_Name, Total_Balance
+FROM (SELECT CONCAT(c.FirstName, "  ",c.LastName) as Full_Name,
+SUM(a.Balance) as Total_Balance,
+DENSE_RANK() OVER (ORDER BY SUM(a.Balance) DESC) AS Balance_Rank
+from customers c 
+JOIN Accounts a USING(CustomerID)
+WHERE a.AccountType IN("checking","savings")
+GROUP BY 1 ) Ranked_Balance
+WHERE Balance_Rank = 1;
+
+#10. Which branch has the highest number of transactions in the Transactions table?
+
+SELECT BranchName,Total_transactions 
+FROM(SELECT b.BranchName, 
+COUNT(T.AccountID) AS Total_Transactions,
+    DENSE_RANK() OVER (ORDER BY COUNT(T.AccountID) DESC) AS Transaction_Dense_Rank
+  FROM Branches B
+  JOIN Accounts A USING(BranchID)
+  JOIN Transactions T USING(AccountID)
+  GROUP BY 1
+) Ranked_Branches
+WHERE Transaction_Dense_Rank = 1;
+
+
+
+
